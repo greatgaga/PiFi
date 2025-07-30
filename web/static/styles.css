@@ -1,0 +1,177 @@
+h1 {
+    text-align: center;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 50px;
+}
+
+p {
+    font-family: 'Courier New', Courier, monospace;
+}
+
+.welcome-text {
+    text-align: center;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 25px;
+}
+
+.buttons {
+  text-align: center;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+}
+
+.sidebar {
+    width: 160px;
+    background-color: #222;
+    color: #fff;
+    height: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+
+.sidebar h2 {
+    font-size: 1.2em;
+    margin-bottom: 20px;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar ul li {
+    margin: 10px 0;
+}
+
+.sidebar ul li a {
+    color: #ccc;
+    text-decoration: none;
+}
+
+.sidebar ul li a:hover {
+    color: #fff;
+}
+
+.main-content {
+    margin-left: 200px; /* same as sidebar width */
+    padding: 20px;
+}
+
+button {
+  background-color: #4CAF50;   /* Green background */
+  color: white;                /* White text */
+  border: none;                /* Remove border */
+  padding: 10px 20px;          /* Some padding */
+  border-radius: 25px;         /* Round corners (big value for pill shape) */
+  cursor: pointer;             /* Pointer on hover */
+  font-size: 16px;             /* Font size */
+  transition: background-color 0.3s ease;  /* Smooth color change */
+  transition: transform 0.3s ease;
+  text-align: center;
+  margin-top: 10px;
+  margin-left: 10px;
+}
+
+button:hover {
+  background-color: #45a049;   /* Darker green on hover */
+}
+
+button:active {
+  transform: scale(1.3);
+}
+
+#terminal {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #000;
+  color: #0f0;
+  font-family: monospace;
+  padding: 10px;
+  height: 40%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  border-top: 2px solid #0f0;
+  z-index: 9999;
+  margin-left: 160px; 
+}
+
+#output {
+  flex: 1;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+#input {
+  border: none;
+  outline: none;
+  background: #000;
+  color: #0f0;
+  font-family: monospace;
+  font-size: 16px;
+  padding: 5px;
+}
+
+.evil_twin_creds {
+  margin-bottom: 40px;
+}
+
+/* Switch container */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+  margin-right: 10px;
+}
+
+/* Hide the default checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 34px;
+}
+
+/* The circle inside the slider */
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+/* Toggle ON */
+.switch input:checked + .slider {
+  background-color: #4CAF50;
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(22px);
+}

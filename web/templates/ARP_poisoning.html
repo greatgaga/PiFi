@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PiFi</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Menu</h2>
+        <ul>
+            <li><a href="/">Main webpage</a></li>
+            <li><a href="/network_scanning">Network scanning</a></li>
+            <li><a href="/network_attacks">Network attacks</a></li>
+            <li><a href="/AP_attacks">AP attacks</a></li>
+            <li><a href="/AP_scanning">AP scanning</a></li>
+            <li><a href="/ARP_poisoning">ARP poisoning</a></li>
+            <li><a href="/evil_twin">Evil twin</a></li>
+            <li><a href="/settings">Settings</a></li>
+        </ul>
+    </div>
+  <div class="main-content">
+    <h1>ARP poisonings Terminal</h1>
+    <input class="input_box" id="target" placeholder="targets IP">
+    <button onclick="run_arp_poison()">ARP poison</button>
+    <button onclick="run_undo_arp_poison()">undo ARP poison</button>
+    <div class="buttons">
+      
+    </div>
+    <div id="terminal">
+      <div id="output"></div>
+      <input id="input" type="text" placeholder=">> " autocomplete="off"/>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='index.js') }}"></script>
+  <script src="{{ url_for('static', filename='arp_poisoning.js') }}"></script>
+</body>
+</html>

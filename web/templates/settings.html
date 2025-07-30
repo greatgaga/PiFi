@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PiFi</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Menu</h2>
+        <ul>
+            <li><a href="/">Main webpage</a></li>
+            <li><a href="/network_scanning">Network scanning</a></li>
+            <li><a href="/network_attacks">Network attacks</a></li>
+            <li><a href="/AP_attacks">AP attacks</a></li>
+            <li><a href="/AP_scanning">AP scanning</a></li>
+            <li><a href="/ARP_poisoning">ARP poisoning</a></li>
+            <li><a href="/evil_twin">Evil twin</a></li>
+            <li><a href="/settings">Settings</a></li>
+        </ul>
+    </div>
+  <div class="main-content">
+    <h1>Settings Terminal</h1>
+    <div>
+        <input class="input_box" id="SSID" placeholder="SSID">
+        <input class="input_box" id="password" placeholder="password (optional)" style="margin-bottom: 30px;">
+        <button onclick="run_change_connection_wlan1()">apply</button><br>
+        <p style="display: inline-block;">Credidentials for AP to which wlan1 connects to</p><br>
+        <p id="wlan1_status"></p>
+    </div>
+    <div id="terminal">
+      <div id="output"></div>
+      <input id="input" type="text" placeholder=">> " autocomplete="off"/>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='index.js') }}"></script>
+  <script src="{{ url_for('static', filename='settings.js') }}"></script>
+</body>
+</html>
