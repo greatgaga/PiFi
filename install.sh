@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Auto-detect the non-root user who invoked sudo (or current user)
+# Detect invoking user
 INSTALL_USER="${SUDO_USER:-${USER}}"
 USER_HOME="$(eval echo ~${INSTALL_USER})"
 
@@ -11,18 +11,17 @@ APP_DIR="$PIFI_DIR/web"
 SERVICE_NAME="pifi-web"
 PYTHON_CMD="python3"
 
-# Accept any changed release info for Raspberry Pi repos
 APT_OPTS="-o Acquire::AllowReleaseInfoChange::Origin=true -o Acquire::AllowReleaseInfoChange::Label=true"
 
 echo "==> Detected install user: $INSTALL_USER"
 echo "==> User home directory: $USER_HOME"
 
-echo "==> 1. Clone repo if needed"
+echo "==> 1. Clone repo if not present"
 if [ ! -d "$PIFI_DIR" ]; then
   sudo -u "$INSTALL_USER" git clone "$REPO_URL" "$PIFI_DIR"
 fi
 
-echo "==> 2. Update & install system packages"
+echo "==> 2. Update and install system packages"
 sudo apt-get update $APT_OPTS
 sudo apt-get upgrade -y $APT_OPTS
 sudo apt-get install -y $APT_OPTS \
@@ -42,10 +41,11 @@ sudo apt-get install -y $APT_OPTS \
     iptables-persistent \
     netfilter-persistent
 
-echo "==> 3. Stop any existing interference (optional)"
+echo "==> 3. Stop conflicting services"
+sudo systemctl stop wpa_supplicant.service || true
 sudo pkill -f wpa_supplicant.*wlan1 || true
 
-echo "==> 4. Set up Python venv & install packages"
+echo "==> 4. Set up Python virtual environment"
 cd "$APP_DIR"
 ${PYTHON_CMD} -m venv venv
 source venv/bin/activate
@@ -59,19 +59,20 @@ pip install \
     netifaces \
     dnslib
 
-echo "==> 5. Create systemd service to run app.py on boot"
+echo "==> 5. Create systemd service"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 sudo tee "$SERVICE_FILE" >/dev/null <<EOF
 [Unit]
-Description=PiFi Flask Web + Evil Twin (app only)
-After=network.target
+Description=PiFi Flask Web + Evil Twin (app.py)
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
 User=${INSTALL_USER}
-WorkingDirectory=${USER_HOME}/PiFi
+WorkingDirectory=${PIFI_DIR}
 Environment=PATH=${APP_DIR}/venv/bin:\${PATH}
-ExecStart=/bin/bash -c 'PYTHONPATH=\$(pwd) ${PYTHON_CMD} web/app.py'
+ExecStart=${PYTHON_CMD} web/app.py
 Restart=on-failure
 RestartSec=5
 
@@ -79,9 +80,10 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-echo "==> 6. Enable and start the pifi-web service"
+echo "==> 6. Reload systemd and enable service"
+sudo systemctl daemon-reexec
 sudo systemctl daemon-reload
 sudo systemctl enable ${SERVICE_NAME}
-sudo systemctl start ${SERVICE_NAME}
+sudo systemctl restart ${SERVICE_NAME}
 
-echo "✅ Installation complete—on reboot, only app.py will run as service under $INSTALL_USER"
+echo "✅ PiFi installation complete. Service '${SERVICE_NAME}' will run at boot."
