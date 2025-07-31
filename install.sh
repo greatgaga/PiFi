@@ -38,6 +38,7 @@ sudo apt-get install -y $APT_OPTS \
     python3-pip \
     dos2unix \
     conntrack \
+    iptables \
     iptables-persistent \
     netfilter-persistent
 
