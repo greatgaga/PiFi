@@ -11,6 +11,9 @@ APP_DIR="$PIFI_DIR/web"
 SERVICE_NAME="pifi-web"
 PYTHON_CMD="python3"
 
+# Accept any changed release info for Raspberry Pi repos
+APT_OPTS="-o Acquire::AllowReleaseInfoChange::Origin=true -o Acquire::AllowReleaseInfoChange::Label=true"
+
 echo "==> Detected install user: $INSTALL_USER"
 echo "==> User home directory: $USER_HOME"
 
@@ -20,9 +23,9 @@ if [ ! -d "$PIFI_DIR" ]; then
 fi
 
 echo "==> 2. Update & install system packages"
-sudo apt-get update
-sudo apt-get upgrade -y
-sudo apt-get install -y \
+sudo apt-get update $APT_OPTS
+sudo apt-get upgrade -y $APT_OPTS
+sudo apt-get install -y $APT_OPTS \
     git \
     ${PYTHON_CMD} \
     ${PYTHON_CMD}-venv \
