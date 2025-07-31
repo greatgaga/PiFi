@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-USER_HOME="/home/user"
+# Auto-detect the non-root user who invoked sudo (or current user)
+INSTALL_USER="${SUDO_USER:-${USER}}"
+USER_HOME="$(eval echo ~${INSTALL_USER})"
+
 REPO_URL="https://github.com/greatgaga/PiFi"
 PIFI_DIR="$USER_HOME/PiFi"
 APP_DIR="$PIFI_DIR/web"
 SERVICE_NAME="pifi-web"
 PYTHON_CMD="python3"
 
+echo "==> Detected install user: $INSTALL_USER"
+echo "==> User home directory: $USER_HOME"
+
 echo "==> 1. Clone repo if needed"
 if [ ! -d "$PIFI_DIR" ]; then
-  sudo -u pi git clone "$REPO_URL" "$PIFI_DIR"
+  sudo -u "$INSTALL_USER" git clone "$REPO_URL" "$PIFI_DIR"
 fi
 
 echo "==> 2. Update & install system packages"
@@ -35,7 +41,7 @@ sudo apt-get install -y \
 echo "==> 3. Stop any existing interference (optional)"
 sudo pkill -f wpa_supplicant.*wlan1 || true
 
-echo "==> 4. Set up Python venv & install Python packages"
+echo "==> 4. Set up Python venv & install packages"
 cd "$APP_DIR"
 ${PYTHON_CMD} -m venv venv
 source venv/bin/activate
@@ -58,8 +64,8 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=${USER_HOME}/pifi
+User=${INSTALL_USER}
+WorkingDirectory=${USER_HOME}/PiFi
 Environment=PATH=${APP_DIR}/venv/bin:\${PATH}
 ExecStart=/bin/bash -c 'PYTHONPATH=\$(pwd) ${PYTHON_CMD} web/app.py'
 Restart=on-failure
@@ -74,4 +80,4 @@ sudo systemctl daemon-reload
 sudo systemctl enable ${SERVICE_NAME}
 sudo systemctl start ${SERVICE_NAME}
 
-echo "✅ Installation complete—only app.py will start on boot via systemd. Reboot to verify."
+echo "✅ Installation complete—on reboot, only app.py will run as service under $INSTALL_USER"
