@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-USER_HOME="/home/pi"
+USER_HOME="/home/user"
 REPO_URL="https://github.com/greatgaga/PiFi"
 PIFI_DIR="$USER_HOME/PiFi"
 APP_DIR="$PIFI_DIR/web"
