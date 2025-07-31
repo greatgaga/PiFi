@@ -28,7 +28,7 @@ function run_create_evil_twin() {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ AP_name: AP_name_value, AP_password: AP_password_value })
+            body: JSON.stringify({ AP_name: AP_name_value, AP_password: AP_password_value, connect_to_wlan0: document.getElementById("connect_to_wlan0").checked })
         })
             .then(data => data.json())
             .then(data => {
@@ -54,13 +54,15 @@ function create_evil_twin_with_dns_spoof() {
     });
 
     socket2.on("output", (msg) => {
+        console.log(msg.data);
         output.textContent += msg.data;
         output.scrollTop = output.scrollHeight;
     });
 
     socket2.emit("create_evil_twin_with_dns_spoof", {
         SSID: document.getElementById("AP_name").value.trim(),
-        passkey: document.getElementById("AP_password").value.trim()
+        passkey: document.getElementById("AP_password").value.trim(),
+        connect_to_wlan0: document.getElementById("connect_to_wlan0").checked
     })
 }
 

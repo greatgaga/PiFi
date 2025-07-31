@@ -5,6 +5,7 @@ import subprocess
 import threading
 from collections import defaultdict
 import signal, os
+import time
 
 # make sure your project root is on the path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -17,6 +18,90 @@ from network import evil_twin
 from network import settings
 
 current_procs = defaultdict(lambda: None)
+
+def get_old_connection_wlan0():
+    try:
+        result = subprocess.run(
+            ["nmcli", "-t", "-f", "DEVICE,TYPE,STATE,CONNECTION", "dev"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+
+        connections = []
+        for line in result.stdout.strip().split("\n"):
+            if not line.strip():
+                continue
+            parts = line.strip().split(":", maxsplit=3)
+            if len(parts) == 4:
+                device, dev_type, state, connection = parts
+                if device == "wlan0":
+                    connections.append([device, dev_type, state, connection])
+
+        return connections
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return []
+
+def remove_connections_wlan0(connections):
+    try:
+        for connection in connections:
+            conn_name = connection[3]
+            if (conn_name == ''):
+                pass
+            else:
+                subprocess.run(["nmcli", "connection", "delete", conn_name], check=True)
+                print(f"Connection '{conn_name}' deleted.")
+    except subprocess.CalledProcessError as e:
+        print(f"Error deleting connection: {e}")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+
+def change_connection_wlan0(SSID = "PiFi", password = "pifi1234"):
+    try:
+        # Get current wlan0 connections
+        old_connections = get_old_connection_wlan0()
+
+        # Remove old connections
+        remove_connections_wlan0(old_connections)
+
+        # connecting to new network
+        subprocess.run(["sudo", "nmcli", "device", "wifi", "rescan", "ifname", "wlan0"], check=True)
+        subprocess.run(["sudo", "nmcli", "device", "wifi", "list", "ifname", "wlan0"], check=True)
+        if len(password):
+            for i in range(3):
+                try:
+                    subprocess.run(["nmcli", "device", "wifi", "connect", SSID, "password", password, "ifname", "wlan0"], check=True)
+                    break
+                except Exception as e:
+                    continue
+        else:
+            for i in range(3):
+                try:
+                    subprocess.run(["nmcli", "device", "wifi", "connect", SSID, "ifname", "wlan0"], check=True)
+                    break
+                except Exception as e:
+                    continue
+        return "done\n"
+    except Exception as e:
+        return f"Error: {e}\n"
+    
+try:
+    connections = get_old_connection_wlan0()
+    change_connection_wlan0()
+    print(connections)
+    while len(connections) == 0:
+        print("No wlan0 connection found, trying to connect...")
+        change_connection_wlan0()
+        subprocess.run(["sudo", "nmcli", "device", "wifi", "rescan", "ifname", "wlan0"], check=True)
+        subprocess.run(["sudo", "nmcli", "device", "wifi", "list", "ifname", "wlan0"], check=True)
+        time.sleep(1)
+except Exception as e:
+    print(f"Error while connecting to wlan0: {e}")
+    sys.exit(1)
+
+print("wlan0 connected succesfuly successfully.")
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading", logger=True, engineio_logger=True)
@@ -250,8 +335,9 @@ def start_evil_twin():
 
     evil_twin_name = data.get("AP_name")
     evil_twin_password = data.get("AP_password")
+    connect_to_wlan0 = data.get("connect_to_wlan0")
 
-    result = evil_twin.create_evil_twin(evil_twin_name, evil_twin_password)
+    result = evil_twin.create_evil_twin(evil_twin_name, evil_twin_password, connect_to_wlan0)
 
     return jsonify({"status": result})
 
@@ -288,6 +374,7 @@ def wlan1_status():
 def run_create_ewil_twin_dns_spoof(data):
     ssid = data.get("SSID", "").strip()
     passkey = data.get("passkey", "").strip()
+    connect_to_wlan0 = data.get("connect_to_wlan0", False)
     sid = request.sid
 
     if not ssid or (len(passkey) < 8 and len(passkey) > 0):
@@ -300,7 +387,7 @@ def run_create_ewil_twin_dns_spoof(data):
             socketio.emit("output", {"data": "Starting Evil Twin with DNS spoofing...\n"}, to=sid)
 
             # Run the function directly
-            result = evil_twin.create_evil_twin_with_dns_spoof(ssid, passkey, sid, socketio)
+            result = evil_twin.create_evil_twin_with_dns_spoof(ssid, passkey, connect_to_wlan0, sid, socketio)
 
             # Emit the result string
             socketio.emit("output", {"data": result}, to=sid)
