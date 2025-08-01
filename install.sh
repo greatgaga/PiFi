@@ -5,8 +5,8 @@ set -euo pipefail
 INSTALL_USER="${SUDO_USER:-${USER}}"
 USER_HOME="$(eval echo ~${INSTALL_USER})"
 
-REPO_URL="https://github.com/greatgaga/PiFi"
-PIFI_DIR="$USER_HOME/PiFi"
+REPO_URL="https://github.com/greatgaga/pifi"
+PIFI_DIR="$USER_HOME/pifi"
 APP_DIR="$PIFI_DIR/web"
 SERVICE_NAME="pifi-web"
 PYTHON_CMD="python3"
