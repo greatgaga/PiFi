@@ -109,7 +109,7 @@ def create_evil_twin(evil_twin_name, evil_twin_password, connect_to_wlan0):
 
         # Launch dnsmasq without forking so we can track it
         dns_proc = subprocess.Popen([
-            "dnsmasq",
+            "/usr/sbin/dnsmasq",
             "--no-daemon",
             "--conf-file=/home/user/pifi/evil_twin_dnsmasq.conf",
             "--pid-file=/tmp/evil_twin_dnsmasq.pid"
