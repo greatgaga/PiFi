@@ -44,8 +44,6 @@ sudo apt-get install -y $APT_OPTS \
 echo "==> 3. Disable hostapd and stop conflicting services"
 sudo systemctl disable hostapd.service || true
 sudo systemctl stop hostapd.service || true
-sudo systemctl disable dnsmasq.service || true
-sudo systemctl stop dnsmasq.service || true
 sudo systemctl stop wpa_supplicant.service || true
 sudo pkill -f wpa_supplicant.*wlan1 || true
 

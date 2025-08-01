@@ -107,13 +107,19 @@ def create_evil_twin(evil_twin_name, evil_twin_password, connect_to_wlan0):
         # Kill any old captive instance (but leave the system service alone)
         subprocess.run(["sudo", "pkill", "-f", "/home/user/pifi/evil_twin_dnsmasq.conf"], check=False)
 
+        print("Current directory:", os.getcwd())
+        print("User id:", os.getuid())
+        print("Environment PATH:", os.environ.get("PATH"))
+
         # Launch dnsmasq without forking so we can track it
         dns_proc = subprocess.Popen([
             "/usr/sbin/dnsmasq",
             "--no-daemon",
             "--conf-file=/home/user/pifi/evil_twin_dnsmasq.conf",
-            "--pid-file=/tmp/evil_twin_dnsmasq.pid"
-        ], stdout=subprocess.DEVNULL, stderr=None)
+            "--pid-file=/tmp/evil_twin_dnsmasq.pid",
+        ], shell=True,
+            stdout=subprocess.DEVNULL,
+            stderr=None)
         print("[+] Launched dnsmasq, pid:", dns_proc.pid)
 
         print("Evil Twin Access Point started.")
