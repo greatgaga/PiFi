@@ -8,8 +8,8 @@ USER_HOME="$(eval echo ~${INSTALL_USER})"
 REPO_URL="https://github.com/greatgaga/pifi"
 PIFI_DIR="$USER_HOME/pifi"
 APP_DIR="$PIFI_DIR/web"
-SERVICE_NAME="pifi-web"
 PYTHON_CMD="python3"
+LOG_FILE="$USER_HOME/pifi_cron.log"
 
 APT_OPTS="-o Acquire::AllowReleaseInfoChange::Origin=true -o Acquire::AllowReleaseInfoChange::Label=true"
 
@@ -41,7 +41,9 @@ sudo apt-get install -y $APT_OPTS \
     iptables-persistent \
     netfilter-persistent
 
-echo "==> 3. Stop conflicting services"
+echo "==> 3. Disable hostapd and stop conflicting services"
+sudo systemctl disable hostapd.service || true
+sudo systemctl stop hostapd.service || true
 sudo systemctl stop wpa_supplicant.service || true
 sudo pkill -f wpa_supplicant.*wlan1 || true
 
@@ -59,31 +61,11 @@ pip install \
     netifaces \
     dnslib
 
-echo "==> 5. Create systemd service"
-SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
-sudo tee "$SERVICE_FILE" >/dev/null <<EOF
-[Unit]
-Description=PiFi Flask Web + Evil Twin (app.py)
-After=network-online.target
-Wants=network-online.target
+echo "==> 5. Add cron @reboot task"
+CRON_LINE="@reboot cd $PIFI_DIR && PYTHONPATH=\$(pwd) $APP_DIR/venv/bin/python3 web/app.py >> $LOG_FILE 2>&1"
 
-[Service]
-Type=simple
-User=${INSTALL_USER}
-WorkingDirectory=${PIFI_DIR}
-Environment=PATH=${APP_DIR}/venv/bin:\${PATH}
-ExecStart=${PYTHON_CMD} web/app.py
-Restart=on-failure
-RestartSec=5
+# Remove any existing similar lines to avoid duplication
+( sudo crontab -l 2>/dev/null | grep -v 'web/app.py' ; echo "$CRON_LINE" ) | sudo crontab -
 
-[Install]
-WantedBy=multi-user.target
-EOF
-
-echo "==> 6. Reload systemd and enable service"
-sudo systemctl daemon-reexec
-sudo systemctl daemon-reload
-sudo systemctl enable ${SERVICE_NAME}
-sudo systemctl restart ${SERVICE_NAME}
-
-echo "✅ PiFi installation complete. Service '${SERVICE_NAME}' will run at boot."
+echo "✅ PiFi installation complete."
+echo "ℹ️  'app.py' will run at startup using cron (@reboot), and output will be logged to: $LOG_FILE"

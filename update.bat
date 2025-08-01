@@ -4,7 +4,7 @@ setlocal enabledelayedexpansion
 REM === Configuration ===
 set REMOTE_USER=
 set REMOTE_HOST=
-set REMOTE_DIR=~/pifi
+set REMOTE_DIR=~/PiFi
 set EXCLUDES=keep.sh .env important.txt
 
 echo Cleaning remote directory on %REMOTE_HOST%...
