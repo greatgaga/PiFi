@@ -6,7 +6,7 @@ scanner = nmap.PortScanner()
 
 def get_rpi_ip():
     try:
-        ip = netifaces.ifaddresses("wlan1")[netifaces.AF_INET][0]["addr"]
+        ip = netifaces.ifaddresses("wlan0")[netifaces.AF_INET][0]["addr"]
     except (ValueError, KeyError):
         return None
     return ip

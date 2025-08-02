@@ -462,4 +462,6 @@ def stop_command():
         socketio.emit("command_output", {"data": "No process running.\n"}, to=sid)
 
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=5000, allow_unsafe_werkzeug=True)
+    rpi_ip = network_scanning.get_rpi_ip()
+    print(f"Serving Flask on {rpi_ip}:5000")
+    socketio.run(app, host=str(rpi_ip), port=5000, allow_unsafe_werkzeug=True)
